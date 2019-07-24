@@ -127,6 +127,10 @@ module ActiveRecord
         false
       end
 
+      def supports_datetime_with_precision?
+        false
+      end
+
       # Redshift does not support extensions
       def extension_enabled?(name)
         false
@@ -278,7 +282,11 @@ module ActiveRecord
       end
 
       def create_table_definition(*args) # :nodoc:
-        Redshift::TableDefinition.new(*args)
+        if ActiveRecord.version.release < Gem::Version.new('6.0')
+          Redshift::TableDefinition.new(*args)
+        else
+          Redshift::TableDefinition.new(self, *args)
+        end
       end
     end
   end
