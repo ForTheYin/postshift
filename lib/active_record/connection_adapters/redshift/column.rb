@@ -1,7 +1,10 @@
 module ActiveRecord
   module ConnectionAdapters
-    class RedshiftColumn < PostgreSQLColumn #:nodoc:
-      delegate :encoding, to: :sql_type_metadata
+    module Redshift
+      class Column < ConnectionAdapters::PostgreSQLColumn
+        delegate :encoding, to: :sql_type_metadata
+      end
     end
+    RedshiftColumn = Redshift::Column
   end
 end

@@ -11,8 +11,10 @@ RSpec.describe ActiveRecord::ConnectionAdapters::RedshiftColumn do
         it { expect(subject.name).to eq 'test' }
       end
 
-      context '#table_name' do
-        it { expect(subject.table_name).to be_nil }
+      if ActiveRecord.version.release < Gem::Version.new('6.0')
+        context '#table_name' do
+          it { expect(subject.table_name).to be_nil }
+        end
       end
 
       context '#sql_type_metadata' do
@@ -41,7 +43,11 @@ RSpec.describe ActiveRecord::ConnectionAdapters::RedshiftColumn do
     end
 
     context 'w/ all arguments' do
-      subject { described_class.new('test', 'something', 'string', false, 'test_table', 'cool') }
+      if ActiveRecord.version.release < Gem::Version.new('6.0')
+        subject { described_class.new('test', 'something', 'string', false, 'test_table', 'cool') }
+      else
+        subject { described_class.new('test', 'something', 'string', false, 'cool') }
+      end
 
       it { is_expected.to be_a described_class }
 
@@ -49,8 +55,10 @@ RSpec.describe ActiveRecord::ConnectionAdapters::RedshiftColumn do
         it { expect(subject.name).to eq 'test' }
       end
 
-      context '#table_name' do
-        it { expect(subject.table_name).to eq 'test_table' }
+      if ActiveRecord.version.release < Gem::Version.new('6.0')
+        context '#table_name' do
+          it { expect(subject.table_name).to eq 'test_table' }
+        end
       end
 
       context '#sql_type_metadata' do

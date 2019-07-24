@@ -66,7 +66,11 @@ module ActiveRecord
 
         # rubocop:disable Metrics/ParameterLists
         def new_column(name, default, sql_type_metadata = nil, null = true, table_name = nil, default_function = nil) # :nodoc:
-          RedshiftColumn.new(name, default, sql_type_metadata, null, table_name, default_function)
+          if ActiveRecord.version.release < Gem::Version.new('6.0')
+            RedshiftColumn.new(name, default, sql_type_metadata, null, table_name, default_function)
+          else
+            RedshiftColumn.new(name, default, sql_type_metadata, null, default_function)
+          end
         end
         # rubocop:enable Metrics/ParameterLists
 
@@ -92,21 +96,28 @@ module ActiveRecord
 
         # Returns just a table's primary key
         def primary_keys(table)
-          pks = query(<<-end_sql, 'SCHEMA')
+          sql_query = <<~SQL
             SELECT DISTINCT attr.attname
             FROM pg_attribute attr
             INNER JOIN pg_depend dep ON attr.attrelid = dep.refobjid AND attr.attnum = dep.refobjsubid
             INNER JOIN pg_constraint cons ON attr.attrelid = cons.conrelid AND attr.attnum = any(cons.conkey)
             WHERE cons.contype = 'p'
               AND dep.refobjid = '#{quote_table_name(table)}'::regclass
-          end_sql
+          SQL
+
+          pks = query(sql_query, 'SCHEMA')
           pks.present? ? pks[0] : pks
         end
 
         # This entire method block for 't2.oid::regclass::text' to 't2.relname'
         def foreign_keys(table_name)
-          fk_info = select_all(<<-SQL.strip_heredoc, 'SCHEMA')
-            SELECT t2.relname AS to_table, a1.attname AS column, a2.attname AS primary_key, c.conname AS name, c.confupdtype AS on_update, c.confdeltype AS on_delete
+          sql_query = <<~SQL
+            SELECT t2.relname AS to_table,
+                   a1.attname AS column,
+                   a2.attname AS primary_key,
+                   c.conname AS name,
+                   c.confupdtype AS on_update,
+                   c.confdeltype AS on_delete
             FROM pg_constraint c
             JOIN pg_class t1 ON c.conrelid = t1.oid
             JOIN pg_class t2 ON c.confrelid = t2.oid
@@ -119,6 +130,7 @@ module ActiveRecord
             ORDER BY c.conname
           SQL
 
+          fk_info = select_all(sql_query, 'SCHEMA')
           fk_info.map do |row|
             options = {
               column: row['column'],

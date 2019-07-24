@@ -16,10 +16,13 @@ RSpec.describe ActiveRecord::ConnectionAdapters::RedshiftAdapter, type: :model d
 
     it { expect(column).to be_a ActiveRecord::ConnectionAdapters::RedshiftColumn }
     it { expect(column.name).to eq 'test' }
-    it { expect(column.table_name).to eq 'testing' }
     it { expect(column.sql_type_metadata).to eq 'the-data' }
     it { expect(column.null).to be false }
     it { expect(column.default).to eq 'default' }
+
+    if ActiveRecord.version.release < Gem::Version.new('6.0')
+      it { expect(column.table_name).to eq 'testing' }
+    end
   end
 
   describe '#table_options' do

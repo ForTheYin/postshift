@@ -29,12 +29,27 @@ module ActiveRecord
       conn_params[:user] = conn_params.delete(:username) if conn_params[:username]
       conn_params[:dbname] = conn_params.delete(:database) if conn_params[:database]
 
-      # Forward only valid config params to PGconn.connect.
-      conn_params.keep_if { |k, _| RS_VALID_CONN_PARAMS.include?(k) }
+      if ActiveRecord.version.release < Gem::Version.new('6.0')
+        # Forward only valid config params to PGconn.connect.
+        conn_params.keep_if { |k, _| RS_VALID_CONN_PARAMS.include?(k) }
 
-      # The postgres drivers don't allow the creation of an unconnected PGconn object,
-      # so just pass a nil connection object for the time being.
-      ConnectionAdapters::RedshiftAdapter.new(nil, logger, conn_params, config)
+        # The postgres drivers don't allow the creation of an unconnected PGconn object,
+        # so just pass a nil connection object for the time being.
+        ConnectionAdapters::RedshiftAdapter.new(nil, logger, conn_params, config)
+      else
+        # Forward only valid config params to PG::Connection.connect.
+        valid_conn_param_keys = PG::Connection.conndefaults_hash.keys + [:requiressl]
+        conn_params.slice!(*valid_conn_param_keys)
+
+        conn = PG.connect(conn_params)
+        ConnectionAdapters::RedshiftAdapter.new(conn, logger, conn_params, config)
+      end
+    rescue ::PG::Error => error
+      if error.message.include?(conn_params[:dbname])
+        raise ActiveRecord::NoDatabaseError
+      else
+        raise
+      end
     end
   end
 
@@ -112,10 +127,26 @@ module ActiveRecord
         false
       end
 
-      def postgresql_version
-        # Will pass all inernal version support checks
+      # Redshift does not support extensions
+      def extension_enabled?(name)
+        false
+      end
+
+      def disable_extension(name)
+      end
+
+      def enable_extension(name)
+      end
+
+      def extensions
+        []
+      end
+
+      # Will pass all internal version support checks
+      def get_database_version
         Float::INFINITY
       end
+      alias :postgresql_version :get_database_version
 
       def reset!
         @lock.synchronize do
@@ -172,6 +203,26 @@ module ActiveRecord
         end
       end
 
+      # Copied from PostgreSQL, removing pg_range query
+      def load_additional_types(oids = nil)
+        initializer = OID::TypeMapInitializer.new(type_map)
+
+        query = <<~SQL
+          SELECT t.oid, t.typname, t.typelem, t.typdelim, t.typinput, t.typtype, t.typbasetype
+          FROM pg_type as t
+        SQL
+
+        if oids
+          query += "WHERE t.oid::integer IN (%s)" % oids.join(", ")
+        else
+          query += initializer.query_conditions_for_initial_load
+        end
+
+        execute_and_clear(query, "SCHEMA", []) do |records|
+          initializer.run(records)
+        end
+      end
+
       # rubocop:disable Metrics/CyclomaticComplexity
       def configure_connection
         if @config[:encoding]
@@ -212,16 +263,18 @@ module ActiveRecord
       #  - format_type includes the column size constraint, e.g. varchar(50)
       #  - ::regclass is a function that gives the id for a table name
       def column_definitions(table_name) # :nodoc:
-        query(<<-end_sql, 'SCHEMA')
-            SELECT a.attname, format_type(a.atttypid, a.atttypmod),
-                   pg_get_expr(d.adbin, d.adrelid), a.attnotnull, a.atttypid, a.atttypmod,
-                   format_encoding(a.attencodingtype::integer)
-              FROM pg_attribute a LEFT JOIN pg_attrdef d
-                ON a.attrelid = d.adrelid AND a.attnum = d.adnum
-             WHERE a.attrelid = '#{quote_table_name(table_name)}'::regclass
-               AND a.attnum > 0 AND NOT a.attisdropped
-             ORDER BY a.attnum
-        end_sql
+        sql_query = <<~SQL
+          SELECT a.attname, format_type(a.atttypid, a.atttypmod),
+                 pg_get_expr(d.adbin, d.adrelid), a.attnotnull, a.atttypid, a.atttypmod,
+                 format_encoding(a.attencodingtype::integer)
+          FROM pg_attribute a LEFT JOIN pg_attrdef d
+          ON a.attrelid = d.adrelid AND a.attnum = d.adnum
+          WHERE a.attrelid = '#{quote_table_name(table_name)}'::regclass
+            AND a.attnum > 0 AND NOT a.attisdropped
+            ORDER BY a.attnum
+        SQL
+
+        query(sql_query, 'SCHEMA')
       end
 
       def create_table_definition(*args) # :nodoc:

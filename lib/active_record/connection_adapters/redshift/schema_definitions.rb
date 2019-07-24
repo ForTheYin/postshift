@@ -4,10 +4,10 @@ module ActiveRecord
       if ActiveRecord.version < Gem::Version.new('5.1')
         # All this to add 'encoding' to Structure
         class ColumnDefinition < Struct.new(:name, :type, :limit, :precision, :scale, :default, :null, :first, :after, :auto_increment, :primary_key, :collation, :sql_type, :comment, :encoding)
-          # From PostgreSQL to maintain compatability
+          # From PostgreSQL to maintain compatibility
           attr_accessor :array
 
-          # From Abstract to maintain compatability
+          # From Abstract to maintain compatibility
           def primary_key?
             primary_key || type.to_sym == :primary_key
           end
@@ -35,6 +35,13 @@ module ActiveRecord
             options[:auto_increment] ||= true if ints.include?(type) && !options.key?(:default)
             type = :primary_key if ints.include?(type) && options.delete(:auto_increment) == true
             super
+          end
+
+          private
+
+          # Overwrite serial conversion
+          def integer_like_primary_key_type(type, options)
+            type
           end
         end
       end

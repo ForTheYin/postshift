@@ -30,5 +30,7 @@ namespace :spec do
     DatabaseTasks.migrations_paths = File.join(DatabaseTasks.db_dir, 'migrate')
   end
 
-  load 'active_record/railties/databases.rake'
+  if ActiveRecord.version.release < Gem::Version.new('6.0')
+    load 'active_record/railties/databases.rake'
+  end
 end

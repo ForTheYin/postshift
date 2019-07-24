@@ -8,6 +8,7 @@ Amazon Redshift extension for ActiveRecord 5 (Rails 5) PostgreSQL adapter based 
 	* 5.0
 	* 5.1
 	* 5.2
+	* 6.0
 
 <https://github.com/ConsultingMD/activerecord5-redshift-adapter>
 
@@ -121,6 +122,7 @@ appraisal install
 appraisal ar-5.0 rake spec
 appraisal ar-5.1 rake spec
 appraisal ar-5.2 rake spec
+appraisal ar-6.0rc2 rake spec
 ```
 
 ## Contributing
