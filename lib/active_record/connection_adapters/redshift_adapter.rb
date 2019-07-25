@@ -208,22 +208,24 @@ module ActiveRecord
       end
 
       # Copied from PostgreSQL, removing pg_range query
-      def load_additional_types(oids = nil)
-        initializer = OID::TypeMapInitializer.new(type_map)
+      if ActiveRecord.version.release >= Gem::Version.new('5.2')
+        def load_additional_types(oids = nil)
+          initializer = OID::TypeMapInitializer.new(type_map)
 
-        query = <<~SQL
-          SELECT t.oid, t.typname, t.typelem, t.typdelim, t.typinput, t.typtype, t.typbasetype
-          FROM pg_type as t
-        SQL
+          query = <<~SQL
+            SELECT t.oid, t.typname, t.typelem, t.typdelim, t.typinput, t.typtype, t.typbasetype
+            FROM pg_type as t
+          SQL
 
-        if oids
-          query += "WHERE t.oid::integer IN (%s)" % oids.join(", ")
-        else
-          query += initializer.query_conditions_for_initial_load
-        end
+          if oids
+            query += "WHERE t.oid::integer IN (%s)" % oids.join(", ")
+          else
+            query += initializer.query_conditions_for_initial_load
+          end
 
-        execute_and_clear(query, "SCHEMA", []) do |records|
-          initializer.run(records)
+          execute_and_clear(query, "SCHEMA", []) do |records|
+            initializer.run(records)
+          end
         end
       end
 
