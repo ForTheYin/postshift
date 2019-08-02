@@ -95,23 +95,40 @@ module ActiveRecord
         false
       end
 
+      def supports_foreign_keys?
+        false
+      end
+
+      def supports_validate_constraints?
+        false
+      end
+
+      def supports_views?
+        true
+      end
+
+      def supports_datetime_with_precision?
+        false
+      end
+
       def supports_json?
         false
+      end
+
+      def supports_comments?
+        true
       end
 
       def supports_savepoints?
         false
       end
 
-      def native_database_types #:nodoc:
-        NATIVE_DATABASE_TYPES
-      end
-
-      def supports_extensions?
+      def supports_insert_returning?
         false
       end
+      alias :use_insert_returning? :supports_insert_returning?
 
-      def use_insert_returning?
+      def supports_insert_on_conflict?
         false
       end
 
@@ -127,11 +144,11 @@ module ActiveRecord
         false
       end
 
-      def supports_datetime_with_precision?
+      # Redshift does not support extensions
+      def supports_extensions?
         false
       end
 
-      # Redshift does not support extensions
       def extension_enabled?(name)
         false
       end
@@ -144,6 +161,10 @@ module ActiveRecord
 
       def extensions
         []
+      end
+
+      def native_database_types #:nodoc:
+        NATIVE_DATABASE_TYPES
       end
 
       # Will pass all internal version support checks
