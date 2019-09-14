@@ -30,8 +30,5 @@ namespace :spec do
     DatabaseTasks.migrations_paths = File.join(DatabaseTasks.db_dir, 'migrate')
   end
 
-  # Temporary fix for https://github.com/rails/rails/issues/36754
-  require 'rails' unless ActiveRecord.version.release < Gem::Version.new('6.0')
-
   load 'active_record/railties/databases.rake'
 end

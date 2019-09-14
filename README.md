@@ -107,7 +107,7 @@ To run the full test suite, a functioning Redshift database instance is required
 And finally, you can now run the entire test suite:
 
 	rake spec
-	
+
 The spec structure is based on reliance of an available running Redshift instance.  These specs can be run separately:
 
 ```
@@ -122,7 +122,7 @@ appraisal install
 appraisal ar-5.0 rake spec
 appraisal ar-5.1 rake spec
 appraisal ar-5.2 rake spec
-appraisal ar-6.0rc2 rake spec
+appraisal ar-6.0 rake spec
 ```
 
 ## Contributing
@@ -133,4 +133,3 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/ValiMa
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
-

@@ -16,7 +16,8 @@ appraise 'ar-5.2' do
   gem 'activesupport', '5.2.0'
 end
 
-appraise 'ar-6.0rc2' do
+appraise 'ar-6.0' do
   gem 'pg', '~> 1.0.0'
-  gem 'rails', '6.0.0.rc2'
+  gem 'activerecord', '6.0.0'
+  gem 'activesupport', '6.0.0'
 end
